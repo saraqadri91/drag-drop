@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drag and Drop File Upload</title>
+  <style>
+    /* Styles for the drag-and-drop area */
+    #dropArea {
+      border: 2px dashed #ccc;
+      padding: 20px;
+      text-align: center;
+      transition: 0.3s;
+      margin-bottom: 20px;
+    }
+
+    #dropArea.dragging {
+      border-color: #00c853;
+      background-color: #e8f5e9;
+    }
+
+    /* Styles for the gallery */
+    #gallery img {
+      margin: 10px;
+      max-width: 200px;
+      height: auto;
+    }
+
+    iframe {
+      margin: 10px;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="dropArea">Drag and drop files here or use the file input below:</div>
+  <input type="file" id="fileInput" />
+  <div id="gallery"></div>
+
+  <script>
+    const cloudName = "dbcs3lggb"; // Your Cloudinary Cloud Name
+    const unsignedUploadPreset = "clodinary"; // Your Unsigned Upload Preset
+
+    // DOM Elements
+    let fileInput = document.getElementById("fileInput");
+    let gallery = document.getElementById("gallery");
+    let dropArea = document.getElementById("dropArea");
+
+    // Upload File Function
+    function uploadFile(file) {
+      let url = `https://api.cloudinary.com/v1_1/dbcs3lggb/upload`;
+
+      let fd = new FormData();
+      fd.append("upload_preset", unsignedUploadPreset);
+      fd.append("file", file);
+
+      fetch(url, {
+        method: "POST",
+        body: fd,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          let resourceURL = data.secure_url;
+
+          // Transform the URL for images
+          let transformedUrl = resourceURL.replace(
+            "upload/",
+            "upload/h_200,w_200/r_max/c_crop,g_face/"
+          );
+          console.log("Uploaded successfully:", resourceURL);
+
+          // Handle PDF or MP4 files
+          if (data.format === "pdf" || data.format === "mp4") {
+            let iframe = document.createElement("iframe");
+            iframe.src = resourceURL;
+            iframe.width = "500px";
+            iframe.height = "500px";
+            gallery.appendChild(iframe);
+          } else {
+            // Display uploaded images
+            let img = new Image();
+            img.src = transformedUrl;
+            gallery.appendChild(img);
+          }
+        })
+        .catch((error) => {
+          console.error("Upload failed:", error);
+        });
+    }
+
+    // Handle File Input Change
+    fileInput.addEventListener("change", () => {
+      let file = fileInput.files[0];
+      if (file) {
+        uploadFile(file);
+      }
+    });
+
+    // Drag and Drop Events
+    dropArea.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropArea.classList.add("dragging"); // Add visual feedback
+    });
+
+    dropArea.addEventListener("dragleave", () => {
+      dropArea.classList.remove("dragging"); // Remove visual feedback
+    });
+
+    dropArea.addEventListener("drop", (event) => {
+      event.preventDefault();
+      dropArea.classList.remove("dragging");
+
+      let file = event.dataTransfer.files[0]; // Get the dropped file
+      if (file) {
+        uploadFile(file); // Upload the dropped file
+      }
+    });
+  </script>
+</body>
+</html>
